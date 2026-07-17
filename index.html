@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- `user-scalable=no` is here for consistency with the rest of the catalog,
+         but do NOT trust it: iOS Safari has ignored it since iOS 10. What
+         actually blocks a double-tap zoom on a live game is mobile.css's
+         `touch-action: manipulation` plus the gesture guards in
+         engine/mobile.ts's hardenViewport(), called at boot. -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="color-scheme" content="dark" />
+    <meta name="description" content="Dogfight in a shared gravity well — thrust, slingshot around the star, and be the last ship flying." />
+    <meta property="og:title" content="Orbital Skirmish" />
+    <meta property="og:description" content="Dogfight in a shared gravity well — thrust, slingshot around the star, and be the last ship flying. Solo survival, or live peer-to-peer deathmatch for 2–4." />
+    <meta property="og:type" content="website" />
+    <link rel="icon" type="image/svg+xml" href="./favicon.svg" />
+
+    <!-- Home-screen install. Every href here is RELATIVE: the game is served from
+         a project subpath in dev and from its own domain in prod, and a leading
+         slash resolves to the wrong origin root in the first case. -->
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <meta name="theme-color" content="#0a0e1a" />
+    <!-- iOS ignores the manifest's icons entirely, and composites a transparent
+         icon onto BLACK — hence a separate, fully opaque, full-bleed 180x180. -->
+    <link rel="apple-touch-icon" sizes="180x180" href="./icons/apple-touch-icon.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Orbital" />
+    <meta name="mobile-web-app-capable" content="yes" />
+
+    <title>Orbital Skirmish</title>
+    <script defer src="https://static.cloudflareinsights.com/beacon.min.js" data-cf-beacon='{"token": "ba2bab2193ba42c1bea3d6714fcd0e28"}'></script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

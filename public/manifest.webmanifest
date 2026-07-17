@@ -1,0 +1,17 @@
+{
+  "name": "Orbital Skirmish",
+  "short_name": "Orbital",
+  "description": "Dogfight in a shared gravity well — thrust, slingshot around the star, and be the last ship flying.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0a0e1a",
+  "theme_color": "#0a0e1a",
+  "categories": ["games"],
+  "icons": [
+    { "src": "./icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./icons/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
