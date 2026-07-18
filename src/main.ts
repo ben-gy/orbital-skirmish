@@ -20,6 +20,7 @@ import './styles/mobile.css';
 import './styles/main.css';
 
 import { createInput, type Input } from './engine/input';
+import { createJoystick, type Joystick } from './engine/joystick';
 import { createLoop, type Loop } from './engine/loop';
 import { hardenViewport } from './engine/mobile';
 import { createNet, type Net, type PeerId } from './engine/net';
@@ -42,6 +43,7 @@ import { NetGame } from './net-game';
 import { computeView, render, seatColor, SEAT_NAMES } from './render';
 import { Survival } from './game/survival';
 import { IN_FIRE, IN_LEFT, IN_RIGHT, IN_THRUST, Sim, type SimEvent } from './game/sim';
+import { autoSteer } from './steer';
 import {
   aboutScreen,
   arenaShell,
@@ -80,6 +82,9 @@ class Game {
   private fx = new Fx(reduced);
   private loop: Loop | null = null;
   private input: Input | null = null;
+  private joystick: Joystick | null = null;
+  /** Set once the player touches the screen — turns on analog steering + auto-fire. */
+  private usingTouch = false;
   private canvas: HTMLCanvasElement | null = null;
   private ctx: CanvasRenderingContext2D | null = null;
   private countdown: Countdown | null = null;
@@ -197,6 +202,7 @@ class Game {
    */
   private buildArena(hud: string, live: boolean): void {
     view.innerHTML = arenaShell(hud, live, sfx.muted());
+    document.body.classList.add('playing'); // hide the footer while the round is live
     this.canvas = document.getElementById('cv') as HTMLCanvasElement;
     this.ctx = this.canvas.getContext('2d');
     this.resize();
@@ -233,7 +239,23 @@ class Game {
         KeyP: 'pause',
         KeyM: 'mute',
       },
-      buttons: [{ action: 'fire', label: '●' }],
+      // No D-pad / fire button: a discrete pad is the wrong control for a fast
+      // arena flyer. Touch gets a FLOATING ANALOG STICK instead (below), and the
+      // ship auto-fires — one thumb flies, and you are always shooting.
+      touch: false,
+    });
+
+    // Floating stick: push where you want to fly, the ship turns to face it and
+    // thrusts. mask() reads it and maps it onto the SAME rotate/thrust bitmask
+    // the sim and netcode already speak, so nothing on the wire changes.
+    this.joystick?.destroy();
+    this.usingTouch = false;
+    this.joystick = createJoystick({
+      surface: this.canvas,
+      reducedMotion: reduced,
+      onStart: () => {
+        this.usingTouch = true;
+      },
     });
   }
 
@@ -271,10 +293,26 @@ class Game {
     const s = this.input?.state;
     if (!s) return 0;
     let m = 0;
-    if (s.axis.x < -0.3) m |= IN_LEFT;
-    if (s.axis.x > 0.3) m |= IN_RIGHT;
-    if (s.axis.y < -0.3) m |= IN_THRUST;
-    if (s.down.has('fire')) m |= IN_FIRE;
+    const joy = this.joystick?.vector();
+    if (this.joystick?.active() && joy && joy.mag > 0) {
+      // ANALOG STEERING. The stick gives a heading; turn the ship toward it and
+      // thrust once it is roughly facing that way. The view is world-aligned
+      // (no camera rotation/flip), so screen direction == ship facing space:
+      // the ship's facing is (cos ang, sin ang) exactly as the sim thrusts.
+      const sim = this.survival?.sim ?? this.ng?.sim;
+      const seat = this.survival ? 0 : (this.ng?.selfSeat() ?? -1);
+      const ship = sim?.ships.find((sh) => sh.seat === seat && sh.alive && !sh.out);
+      if (ship) m |= autoSteer(Math.atan2(joy.y, joy.x), ship.ang);
+    } else {
+      // Keyboard (desktop): rotate + thrust, unchanged.
+      if (s.axis.x < -0.3) m |= IN_LEFT;
+      if (s.axis.x > 0.3) m |= IN_RIGHT;
+      if (s.axis.y < -0.3) m |= IN_THRUST;
+    }
+    // Fire on the fire key, OR auto-fire the whole time on touch — one-handed,
+    // and no different from a desktop player holding Space (the sim gates on
+    // cooldown, so the max cadence is identical either way).
+    if (s.down.has('fire') || this.usingTouch) m |= IN_FIRE;
     return m;
   }
 
@@ -714,6 +752,9 @@ class Game {
   // ── teardown ───────────────────────────────────────────────────────────────
 
   private teardownRound(): void {
+    // Every path out of the arena runs through here, so the footer comes back on
+    // the menu / results / lobby the moment the live round ends.
+    document.body.classList.remove('playing');
     this.loop?.stop();
     this.loop = null;
     this.countdown?.cancel();
@@ -721,6 +762,9 @@ class Game {
     this.counting = false;
     this.input?.destroy();
     this.input = null;
+    this.joystick?.destroy();
+    this.joystick = null;
+    this.usingTouch = false;
     this.ng?.destroy();
     this.ng = null;
     this.survival = null;

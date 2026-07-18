@@ -71,6 +71,13 @@ body {
   text-decoration: underline;
 }
 
+/* The footer lives in #app (persistent), so it would otherwise sit under the
+   arena. Hide it while a round is live — main.ts adds `playing` to <body> in
+   buildArena and removes it in teardownRound. */
+body.playing .site-footer {
+  display: none !important;
+}
+
 .screen {
   flex: 1 0 auto;
   display: flex;

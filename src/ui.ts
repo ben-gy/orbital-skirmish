@@ -109,7 +109,7 @@ export function helpScreen(): string {
       <li><kbd>Space</kbd> — fire</li>
       <li><kbd>P</kbd> pause · <kbd>M</kbd> mute</li>
     </ul>
-    <p class="muted">On a phone: use the pad on the left and the fire button on the right.</p>
+    <p class="muted">On a phone: rest a thumb anywhere and push the way you want to fly — the ship turns to face it and thrusts. Your guns fire automatically.</p>
   </div>`;
 }
 
