@@ -23,7 +23,7 @@
  * except that one.
  */
 
-import { makeRng, randFloat, type Rng } from '../engine/rng';
+import { makeRng, randFloat, type Rng } from '@ben-gy/game-engine/rng';
 import type { Mode } from '../modes';
 
 // ── arena ────────────────────────────────────────────────────────────────────

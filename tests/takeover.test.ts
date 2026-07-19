@@ -19,7 +19,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { NetGame, TICK_MS } from '../src/net-game';
 import { Sim } from '../src/game/sim';
 import { MODES } from '../src/modes';
-import type { Net, PeerId } from '../src/engine/net';
+import type { Net, PeerId } from '@ben-gy/game-engine/net';
 
 type Handler = (data: unknown, from: PeerId) => void;
 
@@ -44,7 +44,12 @@ function fakeNet(bus: Bus, selfId: PeerId, host: () => PeerId | null): Net {
     host,
     isHost: () => host() === selfId,
     hostSettled: () => host() !== null,
+    // Terms are net.ts's business. This file drives promotion explicitly via
+    // setHost()/onHostChange(), which is the only path NetGame is allowed to
+    // learn about authority through, so a static term is honest here.
+    hostEpoch: () => 1,
     count: () => bus.peers.size,
+    onPeersChange: () => () => {},
     channel<T>(name: string, onReceive: (d: T, from: PeerId) => void) {
       const chans = bus.peers.get(selfId)!;
       if (!chans.has(name)) chans.set(name, new Set());
@@ -58,6 +63,18 @@ function fakeNet(bus: Bus, selfId: PeerId, host: () => PeerId | null): Net {
       return send;
     },
     ping: async () => 0,
+    // The lobby's "Host this room" button. Nothing here presses it — promotion
+    // in these cases arrives from net.ts, which is the case that matters.
+    takeover: () => {},
+    netDiag: () => ({
+      selfId,
+      host: host(),
+      epoch: 1,
+      settled: host() !== null,
+      peers: [...bus.peers.keys()].sort(),
+      relaySockets: {},
+      turn: false,
+    }),
     leave: async () => void bus.peers.delete(selfId),
   };
 }

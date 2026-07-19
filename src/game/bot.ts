@@ -18,7 +18,7 @@
  * kill is not modelling how a human plays a 3-life round.
  */
 
-import { makeRng, type Rng } from '../engine/rng';
+import { makeRng, type Rng } from '@ben-gy/game-engine/rng';
 import { IN_FIRE, IN_LEFT, IN_RIGHT, IN_THRUST, MUZZLE_SPEED, Sim, type Ship } from './sim';
 
 /** Inside this, the well is winning and nothing else matters. */

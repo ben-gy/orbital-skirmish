@@ -24,22 +24,23 @@ mountFeedback();
 import './styles/mobile.css';
 import './styles/main.css';
 
-import { createInput, type Input } from './engine/input';
-import { createJoystick, type Joystick } from './engine/joystick';
-import { createLoop, type Loop } from './engine/loop';
-import { hardenViewport } from './engine/mobile';
-import { createNet, type Net, type PeerId } from './engine/net';
-import { createRounds, type Rounds } from './engine/rematch';
-import { createSfx } from './engine/sound';
-import { createStore } from './engine/storage';
-import { resolveName } from './engine/identity';
+import { createInput, type Input } from '@ben-gy/game-engine/input';
+import { createJoystick, type Joystick } from '@ben-gy/game-engine/joystick';
+import { createLoop, type Loop } from '@ben-gy/game-engine/loop';
+import { hardenViewport } from '@ben-gy/game-engine/mobile';
+import { createNet, roomAppId, setTurnConfig, type Net, type PeerId } from '@ben-gy/game-engine/net';
+import { getTurnConfig } from '@ben-gy/game-engine/turn';
+import { createRounds, type Rounds } from '@ben-gy/game-engine/rematch';
+import { createSfx } from '@ben-gy/game-engine/sound';
+import { createStore } from '@ben-gy/game-engine/storage';
+import { resolveName } from '@ben-gy/game-engine/identity';
 import {
   clearRoomInUrl,
   createLobby,
   createRoomEntry,
   mintCode,
   normalizeRoomCode,
-} from './engine/lobby';
+} from '@ben-gy/game-engine/lobby';
 import { createCountdown, type Countdown } from './countdown';
 import { Fx } from './fx';
 import { Match } from './match';
@@ -74,6 +75,23 @@ const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const playerName = resolveName(store, () => `Pilot ${Math.floor(Math.random() * 900 + 100)}`);
 
 hardenViewport();
+
+/**
+ * TURN credentials, fetched at boot rather than at join time.
+ *
+ * Trystero builds ONE global pool of pre-made RTCPeerConnections from the config
+ * of whichever joinRoom fires FIRST on the page, and every later room draws its
+ * OUTBOUND offers from that pool. So a setTurnConfig() that lands after the
+ * first mesh leaves the initiating half of every pair STUN-only — TURN working
+ * in one direction for roughly half of all pairs, which is far worse to diagnose
+ * than no TURN at all. Starting the fetch here means it is already in flight
+ * long before anyone can reach "Play with friends", and enterRoom awaits it so
+ * the ordering holds even on a click that beats the network.
+ *
+ * getTurnConfig() is session-cached and fails open to [] on any error or after
+ * 3s, so this never blocks or delays a join by more than that worst case.
+ */
+const turnReady: Promise<void> = getTurnConfig().then(setTurnConfig);
 
 const app = document.getElementById('app')!;
 app.innerHTML = `<div class="main-content" id="view"></div>${FOOTER}`;
@@ -491,11 +509,18 @@ class Game {
    */
   private async enterRoom(rawCode: string, created: boolean): Promise<void> {
     if (this.leaving) await this.leaving;
+    // The boot-time fetch is almost always already resolved; awaiting it here is
+    // the belt to that braces, guaranteeing the very first mesh on the page
+    // carries TURN. Fails open to STUN-only, so it cannot strand a joiner.
+    await turnReady;
     const code = normalizeRoomCode(rawCode) || mintCode();
     this.roomCode = code;
     this.match = new Match();
     this.net = createNet(
-      { appId: SLUG, roomId: code, claimHost: created },
+      // roomAppId stamps the wire revision into the namespace, so a player on a
+      // cached pre-v1.1.0 build lands in a different room instead of joining
+      // this one and silently misunderstanding every epoch message.
+      { appId: roomAppId(SLUG), roomId: code, claimHost: created },
       {
         onHostChange: (_id, isSelfHost) => {
           // Routes to BOTH: the round core (so a promoted peer keeps simulating)

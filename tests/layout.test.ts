@@ -11,9 +11,27 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it, afterEach } from 'vitest';
-import { createInput, type Input } from '../src/engine/input';
+import { createInput, type Input } from '@ben-gy/game-engine/input';
 
 const css = readFileSync(join(__dirname, '..', 'src', 'styles', 'main.css'), 'utf8');
+
+/**
+ * The same key map main.ts hands createInput. It matters that this is the real
+ * one and not a stub: the overlay tests below assert that a touch button drives
+ * "the same action the keyboard does", and that claim is only worth anything if
+ * the keyboard half is wired to the actions the game truly binds.
+ */
+const KEYS: Record<string, string> = {
+  ArrowLeft: 'left',
+  ArrowRight: 'right',
+  ArrowUp: 'up',
+  KeyA: 'left',
+  KeyD: 'right',
+  KeyW: 'up',
+  Space: 'fire',
+  KeyP: 'pause',
+  KeyM: 'mute',
+};
 
 /** The declaration block for a selector, or ''. */
 function ruleFor(selector: string): string {
@@ -79,7 +97,7 @@ describe('the touch overlay', () => {
     // phone controls actually get exercised.
     const target = document.createElement('canvas');
     document.body.appendChild(target);
-    input = createInput({ target, touch: true, buttons: [{ action: 'fire', label: '●' }] });
+    input = createInput({ target, keys: KEYS, touch: true, buttons: [{ action: 'fire', label: '●' }] });
 
     const root = document.querySelector('.vcontrols');
     expect(root).toBeTruthy();
@@ -93,7 +111,7 @@ describe('the touch overlay', () => {
   it('meets the 44px tap target minimum', () => {
     const target = document.createElement('canvas');
     document.body.appendChild(target);
-    input = createInput({ target, touch: true, buttons: [{ action: 'fire', label: '●' }] });
+    input = createInput({ target, keys: KEYS, touch: true, buttons: [{ action: 'fire', label: '●' }] });
     for (const b of document.querySelectorAll<HTMLElement>('.vbtn')) {
       expect(parseInt(b.style.width, 10)).toBeGreaterThanOrEqual(44);
       expect(parseInt(b.style.height, 10)).toBeGreaterThanOrEqual(44);
@@ -103,7 +121,7 @@ describe('the touch overlay', () => {
   it('a touch on the pad moves the axis the ship reads', () => {
     const target = document.createElement('canvas');
     document.body.appendChild(target);
-    input = createInput({ target, touch: true, buttons: [{ action: 'fire', label: '●' }] });
+    input = createInput({ target, keys: KEYS, touch: true, buttons: [{ action: 'fire', label: '●' }] });
     const left = [...document.querySelectorAll<HTMLElement>('.vbtn')].find((b) => b.textContent === '←')!;
     left.dispatchEvent(new Event('touchstart', { bubbles: true, cancelable: true }));
     expect(input.state.axis.x).toBeLessThan(0);
@@ -114,7 +132,7 @@ describe('the touch overlay', () => {
   it('the fire button drives the same action the keyboard does', () => {
     const target = document.createElement('canvas');
     document.body.appendChild(target);
-    input = createInput({ target, touch: true, buttons: [{ action: 'fire', label: '●' }] });
+    input = createInput({ target, keys: KEYS, touch: true, buttons: [{ action: 'fire', label: '●' }] });
     const fire = [...document.querySelectorAll<HTMLElement>('.vbtn')].find((b) => b.textContent === '●')!;
     fire.dispatchEvent(new Event('touchstart', { bubbles: true, cancelable: true }));
     expect(input.state.down.has('fire')).toBe(true);
@@ -125,7 +143,7 @@ describe('the touch overlay', () => {
   it('is removed on teardown, so a menu is never left with a d-pad on it', () => {
     const target = document.createElement('canvas');
     document.body.appendChild(target);
-    const i = createInput({ target, touch: true, buttons: [{ action: 'fire', label: '●' }] });
+    const i = createInput({ target, keys: KEYS, touch: true, buttons: [{ action: 'fire', label: '●' }] });
     expect(document.querySelector('.vcontrols')).toBeTruthy();
     i.destroy();
     expect(document.querySelector('.vcontrols')).toBeNull();

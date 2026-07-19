@@ -12,7 +12,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { clearRoomInUrl, inviteLink, mintCode, normalizeRoomCode } from '../src/engine/lobby';
+import { clearRoomInUrl, inviteLink, mintCode, normalizeRoomCode } from '@ben-gy/game-engine/lobby';
 
 describe('normalizeRoomCode', () => {
   it('folds a hand-typed code onto the canonical one', () => {
