@@ -4,6 +4,7 @@
   "version": "1.0.0",
   "type": "module",
   "description": "Dogfight in a shared gravity well — thrust, slingshot around the star, and be the last ship flying.",
+  "license": "AGPL-3.0-or-later",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
