@@ -19,11 +19,6 @@
  *    drags you back into a room you left.
  */
 
-// feedback:begin (managed by hub/scripts/feedback/backfill.mjs)
-import { mountFeedback } from './feedback';
-mountFeedback();
-// feedback:end
-
 import './styles/mobile.css';
 import './styles/main.css';
 
